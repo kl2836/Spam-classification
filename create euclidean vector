@@ -1,11 +1,55 @@
-load bag_words.mat
-load weights.mat
-files=dir('C:\Users\CPL\Documents\MATLAB\hamtest');
-numtest = 22   - 2;
-initial = 160;
-probability = zeros(numtest,1);
-for k = initial:(numtest+initial)
-   euclid_rep = zeros(1,size(words,1));
+tic 
+
+%read in training set 
+files=dir('C:\Users\CPL\Documents\MATLAB\hamtrain');
+bag_of_words = 'bob'; %initialize bag of words
+
+%tokenize all ham training set files
+for k=3:length(files)
+   file_name=files(k).name;
+   %file_name = strcat(file_name, '.txt');
+   text = fileread(file_name);
+   bag_of_words = [bag_of_words; tokenize(text, ' ')];
+end 
+
+%tokenize all spam training set files
+files=dir('C:\Users\CPL\Documents\MATLAB\spamtrain');
+for k=3:length(files)
+   file_name=files(k).name;
+   %file_name = strcat(file_name, '.txt');
+   text = fileread(file_name);
+   bag_of_words = [bag_of_words; tokenize(text, ' ')];
+end
+
+%pull out only the unique words
+bag_of_words = unique(bag_of_words);
+
+%stem each file using porterStemmer 
+words = cell(length(bag_of_words)-5000+1, 1); 
+for i = 5000:length(bag_of_words)
+    x = porterStemmer(bag_of_words{i});
+    words{i-4999} = x;
+end 
+
+%take all unique stemmed words 
+words = unique(words); %32153x1
+toc 
+
+%takes 77 seconds so far to run the above
+
+tic 
+%STEP 2
+%create euclidean representation of all files
+
+
+ham_size =  length(dir('C:\Users\CPL\Documents\MATLAB\hamtrain'));
+                
+files=dir('C:\Users\CPL\Documents\MATLAB\hamtrain');
+
+massive = zeros(ham_size, length(words));
+
+%read through all ham train files, create euclidean vector 
+for k=3:length(files)
    file_name=files(k).name;
    %file_name = strcat(file_name, '.txt');
    text = fileread(file_name);
@@ -18,17 +62,75 @@ for k = initial:(numtest+initial)
         catch ME
         end 
    end 
-   
-   for i = 1:length(temp)
+%    for j = 1:length(bag_of_words)
+%        for i=1:length(words_in_file)
+%            if isequal(bag_of_words(j),words_in_file(i))
+%                massive(k-2,j) = massive(k-2,j)+1;
+%            end
+%        end
+%    end
+
+     for i = 1:length(temp)
          index = find(strcmp(words,temp{i}));
-         euclid_rep(1,index) = euclid_rep(1,index)+1;
-   end
-euclid_rep = euclid_rep(18000:20000);
+%          for j = 1:length(words)
+%              if isequal(words{j},temp{i})
+%                  massive(k-2,j) = massive(k-2,j)+1;
+%                  continue
+%              end
+%          end
+            massive(k-2,index) = massive(k-2,index)+1;
+     end
+     
+    k
+end
+%860 seconds
+toc
 
-value = weights*euclid_rep;
+%read through all spam train files, create euclidean vector 
+tic
+spam_size =  length(dir('C:\Users\CPL\Documents\MATLAB\spamtrain'));
 
-probability(k-2) = 1/(1+exp(-weights'*euclid_rep'));
-end 
+files=dir('C:\Users\CPL\Documents\MATLAB\spamtrain');
+massive2 = zeros(spam_size, length(words));
 
+for k=3:length(files)
+   file_name=files(k).name;
+   %file_name = strcat(file_name, '.txt');
+   text = fileread(file_name);
+   words_in_file=tokenize(text, ' ');
+   
+   temp = cell(length(words_in_file), 1);
+   for i = 1:length(words_in_file)
+        try
+            temp{i}=porterStemmer(words_in_file{i});
+        catch ME % in case there are non-letters
+            
+        end 
+   end 
+%    for j = 1:length(bag_of_words)
+%        for i=1:length(words_in_file)
+%            if isequal(bag_of_words(j),words_in_file(i))
+%                massive(k-2,j) = massive(k-2,j)+1;
+%            end
+%        end
+%    end
 
+     for i = 1:length(temp)
+         index = find(strcmp(words,temp{i}));
+%          for j = 1:length(words)
+%              if isequal(words{j},temp{i})
+%                  massive(k-2,j) = massive(k-2,j)+1;
+%                  continue
+%              end
+%          end
+            massive2(k-2,index) = massive2(k-2,index)+1;
+     end
+     k
+end
+
+%combine spam and ham to create massive matrix of euclidean vectors 
+massive = [massive; massive2];
+toc
+%367 seconds 
+%1360 seconds ~= 22 minutes
 
