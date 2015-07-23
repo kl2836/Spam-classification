@@ -1,0 +1,68 @@
+%CREATING THE LOGISTIC REGRESSION CLASSIFIER
+tic 
+load massive_matrix.mat
+
+%create vector of y-values for ham and spam
+files=dir('C:\Users\CPL\Documents\MATLAB\hamtrain');
+hamtrain_y(1:length(files), 1) = -1; %we use -1 for now, in order to train the classifier
+%but a simple mathematical trick later makes the output between 0 and 1
+
+
+files=dir('C:\Users\CPL\Documents\MATLAB\spamtrain');
+spamtrain_y = ones(length(files), 1);
+
+%in case we want less samples, data size, run below (otherwise it takes 34
+%minutes to run)
+num_ham = 150;
+num_spam = 50;
+hamtrain_y = hamtrain_y(1:num_ham);
+spamtrain_y = spamtrain_y(1:num_spam);
+massive = massive(:, 16000:18000);
+hamtrain_x = massive(1:num_ham, :);
+spamtrain_x = massive(2863:(2863+num_spam-1), :);
+massive = [hamtrain_x; spamtrain_x];
+
+massive_y = [hamtrain_y; spamtrain_y]; %matrix of all y values
+
+weights(1:size(massive,2),1) = 1; %initialize weights matrix
+
+gradient = zeros(size(massive,2),1);
+
+for i = 1:size(massive,1) %find gradient of logistic classifier 
+    gradient = gradient + 1/(1+exp(massive_y(i)*massive(i,:)*weights))*massive_y(i).*massive(i,:)';
+end
+gradient = -gradient;
+
+%takes VERY long and high computational time
+hessian = zeros(size(massive,2),size(massive,2)); %find hessian matrix of logistic classifier 
+for i = 1:size(massive,1)
+    hessian = hessian + 1/(1+exp(massive_y(i)*massive(i,:)*weights))*(1-1/(1+exp(massive_y(i)*massive(i,:)*weights)))*massive(i,:)'*massive(i,:);
+    i;
+end
+
+%gradient/newton descent for logistic regression
+total(1:size(massive,2),1)=100;
+alpha = 0.5; %learning rate
+number = 1;
+
+%we can use norm if we have more time
+%while norm(total-weights,2)>=1
+    %total = weights;
+for t = 1:100 %100 = 20 minutes
+    for i = 1:size(massive,1)
+        gradient = gradient + 1/(1+exp(massive_y(i)*massive(i,:)*weights))*massive_y(i).*massive(i,:)';
+    end
+    gradient = -gradient;
+
+    hessian = zeros(size(massive,2),size(massive,2));
+    for i = 1:size(massive,1)
+        hessian = hessian + 1/(1+exp(massive_y(i)*massive(i,:)*weights))*(1-1/(1+exp(massive_y(i)*massive(i,:)*weights)))*massive(i,:)'*massive(i,:);
+    end
+    
+    %gradient descent 
+    weights = weights - alpha*pinv(hessian)*gradient;
+    number = number + 1
+    %norm(total-weights,2)
+end 
+
+toc 
