@@ -1,0 +1,34 @@
+load bag_words.mat
+load weights.mat
+files=dir('C:\Users\CPL\Documents\MATLAB\hamtest');
+numtest = 22   - 2;
+initial = 160;
+probability = zeros(numtest,1);
+for k = initial:(numtest+initial)
+   euclid_rep = zeros(1,size(words,1));
+   file_name=files(k).name;
+   %file_name = strcat(file_name, '.txt');
+   text = fileread(file_name);
+   words_in_file=tokenize(text, ' ');
+   
+   temp = cell(length(words_in_file), 1);
+   for i = 1:length(words_in_file)
+        try
+            temp{i}=porterStemmer(words_in_file{i});
+        catch ME
+        end 
+   end 
+   
+   for i = 1:length(temp)
+         index = find(strcmp(words,temp{i}));
+         euclid_rep(1,index) = euclid_rep(1,index)+1;
+   end
+euclid_rep = euclid_rep(18000:20000);
+
+value = weights*euclid_rep;
+
+probability(k-2) = 1/(1+exp(-weights'*euclid_rep'));
+end 
+
+
+
